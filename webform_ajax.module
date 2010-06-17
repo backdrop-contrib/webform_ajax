@@ -15,7 +15,7 @@ function webform_ajax_menu() {
     'type'             => MENU_CALLBACK,
     'access callback'  => '_webform_ajax_perm',
     'access arguments' => array(1),
-    'page callback'    => '_webform_ajax',
+    'page callback'    => '_webform_ajax_page',
     'page arguments'   => array(1, 2),
   );
 
@@ -76,7 +76,7 @@ function _webform_ajax_perm($nid = NULL) {
  * @param $op: the operation to handle. Can be either 'next' or 'previous'.
  * @return The rendered HTML of the next/previous page of the webform.
  */
-function _webform_ajax($nid = NULL, $op = NULL) {
+function _webform_ajax_page($nid = NULL, $op = NULL) {
   global $user;
 
   // Loading the node object
