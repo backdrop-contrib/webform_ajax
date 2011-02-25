@@ -1,5 +1,4 @@
 <?php
-// $Id$
 /**
  * @file
  * Makes webform pages load by AJAX instead of causing a full page refresh.
