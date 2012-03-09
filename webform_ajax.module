@@ -1,159 +1,140 @@
 <?php
+
 /**
  * @file
- * Makes webform pages load by AJAX instead of causing a full page refresh.
+ * Webform AJAX module file.
+ * Implements Drupal hooks to provided AJAX submission and page change to Webforms.
  */
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function webform_ajax_menu() {
+  $items = array();
 
-  $items['webform_ajax/%/%'] = array(
-    'title'            => t('Ajax Handling of Webforms'),
-    'type'             => MENU_CALLBACK,
-    'access callback'  => '_webform_ajax_perm',
-    'access arguments' => array(1),
-    'page callback'    => '_webform_ajax_page',
-    'page arguments'   => array(1, 2),
+  $items['webform_ajax/return_webform/%node'] = array(
+    'title' => 'Webform AJAX callback',
+    'page callback' => 'webform_ajax_confirm_return_ajax_callback',
+    'page arguments' => array(2),
+    'delivery callback' => 'ajax_deliver',
+    'access callback' => 'node_access',
+    'access arguments' => array('view', 2),
+    'theme callback' => 'ajax_base_page_theme',
+    'type' => MENU_CALLBACK,
   );
 
   return $items;
 }
 
 /**
- * The access callback for hook_menu item 'webform_ajax/%/%'.
- * @param $nid: the node id of the current webform.
- * @return TRUE if user has access to use this webform, FALSE if not.
+ * Implements hook_form_FORM_ID_alter().
+ * With FORM_ID = webform_configure_form.
+ * Add AJAX option to Webform configure form.
  */
-function _webform_ajax_perm($nid = NULL) {
-  if (!$nid) {
-    return FALSE;
-  }
-
-  $node = node_load($nid);
-
-  global $user;
-
-  $enabled = TRUE;
-
-  // Check if the user's role can submit this webform.
-  if (variable_get('webform_submission_access_control', 1)) {
-    $allowed_roles = array();
-    foreach ($node->webform['roles'] as $rid) {
-      $allowed_roles[$rid] = isset($user->roles[$rid]) ? TRUE : FALSE;
-    }
-    if (array_search(TRUE, $allowed_roles) === FALSE && $user->uid != 1) {
-      $enabled = FALSE;
-    }
-  }
-
-  // Check if the user can add another submission.
-  if ($node->webform['submit_limit'] != -1) { // -1: Submissions are never throttled.
-    module_load_include('inc', 'webform', 'includes/webform.submissions');
-
-    // Disable the form if the limit is exceeded and page cache is not active.
-    if (($limit_exceeded = _webform_submission_limit_check($node)) && ($user->uid != 0 || variable_get('cache', CACHE_DISABLED) == CACHE_DISABLED)) {
-      $enabled = FALSE;
-    }
-  }
-
-  // If editing a submission, load the submission object
-  $sid = $_POST['details']['sid'];
-  if ($sid) {
-    $submission = webform_menu_submission_load($sid, $nid);
-    $enabled = $enabled && webform_submission_access($node, $submission, 'edit');
-  }
-
-  return $enabled;
+function webform_ajax_form_webform_configure_form_alter(&$form, &$form_state) {
+  $node = $form_state['build_info']['args'][0];
+  $form['advanced']['webform_ajax'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('AJAX mode'),
+    '#description' => t('When set, all page changes (from pagebreak component), and webform submission will be achieved in AJAX.'),
+    '#default_value' => $node->webform['webform_ajax'],
+  );
+  array_unshift($form['#submit'], 'webform_ajax_webform_configure_form_submit');
 }
 
+/**
+ * Additional submit callback for form webform_configure_form.
+ */
+function webform_ajax_webform_configure_form_submit(&$form, &$form_state) {
+  $form['#node']->webform['webform_ajax'] = $form_state['values']['webform_ajax'];
+}
 
 /**
- * The access callback for hook_menu item 'webform_ajax/%/%'.
- * @param $nid: the node id of the current webform.
- * @param $op: the operation to handle. Can be either 'next' or 'previous'.
- * @return The rendered HTML of the next/previous page of the webform.
+ * Implements hook_form_FORM_ID_alter().
+ * With FORM_ID = webform_client_form.
+ * Add AJAX logic to Webform form.
  */
-function _webform_ajax_page($nid = NULL, $op = NULL) {
-  global $user;
+function webform_ajax_form_webform_client_form_alter(&$form, $form_state, $form_id) {
+  $webform = $form['#node']->webform;
+  if ($webform['webform_ajax']) {
+    //@FIXME what if the same webform is displayed many times on the page? unique HTML id?
+    $wrapper_id = 'webform-ajax-' . $form['#node']->nid;
+    $form['#prefix'] = '<div id="' . $wrapper_id . '">' . (isset($form['#prefix']) ? $form['#prefix'] : '');
+    $form['#suffix'] = (isset($form['#suffix']) ? $form['#suffix'] : '') . '</div>';
 
-  // Loading the node object
-  $node = node_load($nid);
+    foreach (array('previous', 'next', 'submit') as $button) {
+      $form['actions'][$button]['#ajax'] = array(
+        'callback' => 'webform_ajax_callback',
+        'wrapper' => $wrapper_id,
+        'progress' => array(
+          'message' => '',
+          'type' => 'throbber',
+        ),
+      );
+    }
+  }
+}
 
-  // If editing a submission, load the submission object
-  $sid = $_POST['details']['sid'];
-  if ($sid) {
-    $submission = webform_menu_submission_load($sid, $nid);
+/**
+ * AJAX callback for Webform Prev/Next page and Submit buttons.
+ * Returns the new computed webform, unless it has been completed.
+ */
+function webform_ajax_callback($form, &$form_state) {
+  $output = array();
+  // If user completed his submission, display webform confirmation, and AJAXify "Return to form" link.
+  if (isset($form_state['webform_completed']) && $form_state['webform_completed']) {
+    $wrapper_id = 'webform-ajax-' . $form['#node']->nid;
+    $output = array(
+      '#type' => 'markup',
+      '#markup' => theme(array('webform_confirmation_' . $form['#node']->nid, 'webform_confirmation'), array('node' => $form['#node'], 'sid' => $form_state['values']['details']['sid'])),
+      '#prefix' => '<div id="' . $wrapper_id . '">',
+      '#suffix' => '</div>',
+    );
+    // Add Javascript which will AJAXify "Return to form" link in webform_confirmation.
+    $ajax_setting = array('webform_ajax' => array(
+      $wrapper_id => array(
+        'html_id' => $wrapper_id,
+        'nid' => $form['#node']->nid,
+        'sid' => $form_state['values']['details']['sid'],
+      ),
+    ));
+    drupal_add_js($ajax_setting, 'setting');
+    drupal_add_js(drupal_get_path('module', 'webform_ajax') . '/js/webform_ajax.js', 'file');
   }
   else {
-    $submission = array();
+    $output = $form;
   }
-
-  // Checking on the chosen operation
-  $operation = '';
-  switch ($op) {
-    case 'next':
-      $operation = 'next';
-      break;
-    case 'previous':
-      $operation = 'previous';
-      break;
-  }
-
-  // Stop if the operation entered is invalid
-  if ($operation == '') {
-    return '';
-  }
-
-  // Store the $_POST because some form API functions clear it out
-  $local_POST = $_POST;
-
-  $form_build_id = $_POST['form_build_id'];
-  $form_id = 'webform_client_form_' . $nid;
-
-  // Building $form_state to process according to the clicked button
-  $form_state = array();
-  $form = form_get_cache($form_build_id, $form_state);
-  $form_array = drupal_rebuild_form($form_id, $form_state, array($form_state, $node, $submission), $form_build_id);
-  $form_state['clicked_button'] = $form_array['actions'][$operation];
-
-  if (is_array($local_POST['submitted'])) {
-    foreach ($local_POST['submitted'] as $submit_index => $submit) {
-      $form_state['storage']['submitted'][$submit_index] = $submit;
-      $form_state['values']['submitted'][$submit_index] = $submit;
-    }
-  }
-
-  // Clearing empty values from $form_state
-  if (is_array($form_state['values']['submitted'])) {
-    foreach ($form_state['values']['submitted'] as $value_index => $value) {
-      if (!$value) {
-        unset($form_state['values']['submitted'][$value_index]);
-      }
-    }
-  }
-
-  // Executing the pressed button action
-  drupal_execute($form_id, $form_state, $node, array());
-
-  // Get the HTML for the error messages
-  $error_html = theme('status_messages', 'error');
-
-  // Building the resulting form after the processing of the button
-  $form_array = drupal_rebuild_form($form_id, $form_state, array($form_state, $node, $submission), $form_build_id);
-  $form = drupal_render_form($form_id, $form_array);
-
-  echo '<span id="' . $form_array['#id'] . '-errors">' . $error_html . '</span>' . $form;
+  return $output;
 }
 
 /**
- * Implementation of hook_form_alter().
+ * "Return to form" link AJAX callback.
  */
-function webform_ajax_form_alter(&$form, &$form_state, $form_id) {
-  if (is_array($form['details']) && isset($form['details']['nid']) && $form_id == 'webform_client_form_' . $form['details']['nid']['#value']) {
-    global $base_url;
-    drupal_add_js('var drupalBasePath = "' . $base_url . '";', 'inline');
-    drupal_add_js(drupal_get_path('module', 'webform_ajax') . '/js/webform_ajax.js', 'module');
+function webform_ajax_confirm_return_ajax_callback($node) {
+  // Fake full page mode to force webform messages output.
+  drupal_static_reset('arg');
+  $real_get_q = $_GET['q'];
+  $_GET['q'] = 'node/' . $node->nid;
+
+  webform_node_view($node, 'full');
+
+  // Restore real $_GET['q'].
+  $_GET['q'] = $real_get_q;
+  drupal_static_reset('arg');
+
+  // Display the webform only if it is enabled. Otherwise, show messages.
+  if ($node->content['webform']['#enabled']) {
+    $output = $node->content['webform'];
   }
+  else {
+    $wrapper_id = 'webform-ajax-' . $node->nid;
+    $output = array(
+      '#type' => 'markup',
+      '#markup' => t('The webform cannot be displayed.'),
+      //@FIXME externalize wrapper_id creation in function.
+      '#prefix' => '<div id="' . $wrapper_id . '">',
+      '#suffix' => '</div>',
+    );
+  }
+  return $output;
 }

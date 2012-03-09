@@ -1,64 +1,36 @@
-$(document).ready(function() {
-  $('form.webform-client-form').each(function() {
-    $('input#edit-previous', this)
-      .click(function(event) {
-        webformPrev(event, this.form.id);
+(function ($) {
+
+Drupal.behaviors.webform_ajax = {
+  attach: function (context,settings) {
+
+    // Bind Ajax behaviors to all items showing the class.
+    $.each(Drupal.settings.webform_ajax, function(id, setting) {
+      $('#' + id + ' .links a:not(.ajax-processed)').addClass('ajax-processed').each(function () {
+        // Fully fill element_settings, as Drupal's ajax.js seems not to merge default correctly.
+        var element_settings = {
+          url: 'webform_ajax/return_webform/' + setting.nid,
+          event: 'mousedown',
+          prevent: 'click',
+          keypress: false,
+          selector: '#' + id,
+          effect: 'none',
+          speed: 'none',
+          method: 'replaceWith',
+          wrapper: id,
+          progress: {
+            type: 'throbber',
+            message: ''
+          },
+          submit: {
+            'js': true
+          }
+        };
+
+        Drupal.ajax[id] = new Drupal.ajax(id, this, element_settings);
       });
-    $('input#edit-next', this)
-      .click(function(event) {
-        webformNext(event, this.form.id);
-      });
-  });
-});
+    });
+  }
 
-function webformNext(event, formId) {
-  event.preventDefault();
+};
 
-  var postData = $("#" + formId).serialize();
-  var nodeId = formId.substring(20);
-
-  $.ajax({
-    url: drupalBasePath + '/o2_webform_ajax_page/' + nodeId + '/next',
-    fid:formId,
-    type: 'POST',
-    data: postData,
-    success: function(ajaxData) {
-      $("#" + this.fid + "-errors").remove();
-      $("#" + this.fid).replaceWith(ajaxData);
-        $("#" + this.fid + ' input#edit-previous')
-          .click(function(event) {
-            webformPrev(event, this.form.id);
-          });
-        $("#" + this.fid + ' input#edit-next')
-          .click(function(event) {
-            webformNext(event, this.form.id);
-          });
-      }
-  });
-}
-
-function webformPrev(event, formId) {
-  event.preventDefault();
-
-  var postData = $("#" + formId).serialize();
-  var nodeId = formId.substring(20);
-
-  $.ajax({
-    url: drupalBasePath + '/o2_webform_ajax_page/' + nodeId + '/previous',
-    fid:formId,
-    type: 'POST',
-    data: postData,
-    success: function(ajaxData) {
-      $("#" + this.fid + "-errors").remove();
-      $("#" + this.fid).replaceWith(ajaxData);
-        $("#" + this.fid + ' input#edit-previous')
-          .click(function(event) {
-            webformPrev(event, this.form.id);
-          });
-        $("#" + this.fid + ' input#edit-next')
-          .click(function(event) {
-            webformNext(event, this.form.id);
-          });
-      }
-  });
-}
+}(jQuery));

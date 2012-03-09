@@ -1,6 +1,6 @@
-name = Webform Ajax Page
-description = Load webform pages by AJAX.
-core = 6.x
+name = "Webform AJAX"
+description = "Provides AJAX page change and submission for Webforms"
+version = 7.x-1.0
+core = 7.x
+package = "Webform"
 dependencies[] = webform
-package = Webform
-
