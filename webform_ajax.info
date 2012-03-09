@@ -1,6 +1,6 @@
-name = "Webform AJAX"
-description = "Provides AJAX page change and submission for Webforms"
-version = 7.x-1.0
+; $Id: $
+name = Webform AJAX
+description = Adds AJAX support to Webforms
 core = 7.x
-package = "Webform"
+package = Webform
 dependencies[] = webform
