@@ -90,15 +90,10 @@ function webform_ajax_webform_configure_form_submit(&$form, &$form_state) {
 function webform_ajax_form_webform_client_form_alter(&$form, $form_state, $form_id) {
   $webform = $form['#node']->webform;
   if ($webform['webform_ajax'] != WEBFORM_AJAX_NO_AJAX) {
-    //@todo what if the same webform is displayed many times on the page? unique HTML id?
-    $wrapper_id = 'webform-ajax-' . $form['#node']->nid;
-    $form['#prefix'] = '<div id="' . $wrapper_id . '">' . (isset($form['#prefix']) ? $form['#prefix'] : '');
-    $form['#suffix'] = (isset($form['#suffix']) ? $form['#suffix'] : '') . '</div>';
-
     foreach (array('previous', 'next', 'submit') as $button) {
       $form['actions'][$button]['#ajax'] = array(
         'callback' => 'webform_ajax_callback',
-        'wrapper' => $wrapper_id,
+        'wrapper' => $form['#id'],
         'progress' => array(
           'message' => '',
           'type' => 'throbber',
@@ -150,7 +145,7 @@ function _webform_ajax_callback_completed($form, $form_state) {
     $output = array(
       '#type' => 'markup',
       '#markup' => theme(array('webform_confirmation_' . $form['#node']->nid, 'webform_confirmation'), array('node' => $form['#node'], 'sid' => $form_state['values']['details']['sid'])),
-      '#prefix' => '<div id="' . $wrapper_id . '">',
+      '#prefix' => '<div id="' . $form['#id'] . '">',
       '#suffix' => '</div>',
     );
 
@@ -166,14 +161,13 @@ function _webform_ajax_callback_completed($form, $form_state) {
 
     // Add Javascript which will AJAXify "Return to form" link in webform_confirmation.
     $ajax_setting = array('webform_ajax' => array('wrappers' => array(
-      $wrapper_id => array(
-        'html_id' => $wrapper_id,
+      $form['#id'] => array(
+        'html_id' => $form['#id'],
         'nid' => $form['#node']->nid,
         'sid' => $form_state['values']['details']['sid'],
       ),
     )));
     $ajax_setting['webform_ajax']['url'] = url('webform_ajax/return_webform');
-    // @todo check if this works with enabled caching or on form validation error. possibly js needs to be attached to $form.
     drupal_add_js($ajax_setting, 'setting');
     drupal_add_js(drupal_get_path('module', 'webform_ajax') . '/js/webform_ajax.js', 'file');
   }
@@ -205,13 +199,9 @@ function webform_ajax_confirm_return_ajax_callback($node) {
     $output = $node->content['webform'];
   }
   else {
-    $wrapper_id = 'webform-ajax-' . $node->nid;
     $output = array(
       '#type' => 'markup',
       '#markup' => t('The webform cannot be displayed.'),
-      //@FIXME externalize wrapper_id creation in function.
-      '#prefix' => '<div id="' . $wrapper_id . '">',
-      '#suffix' => '</div>',
     );
   }
   return $output;
