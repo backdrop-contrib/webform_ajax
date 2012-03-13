@@ -102,7 +102,6 @@ function webform_ajax_callback($form, &$form_state) {
       ),
     )));
     $ajax_setting['webform_ajax']['url'] = url('webform_ajax/return_webform');
-    // @todo check if this works with enabled caching or on form validation error. possibly js needs to be attached to $form.
     drupal_add_js($ajax_setting, 'setting');
     drupal_add_js(drupal_get_path('module', 'webform_ajax') . '/js/webform_ajax.js', 'file');
   }
