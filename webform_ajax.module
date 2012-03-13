@@ -127,7 +127,6 @@ function webform_ajax_callback($form, &$form_state) {
  */
 function _webform_ajax_callback_completed($form, $form_state) {
   $output = '';
-  $wrapper_id = 'webform-ajax-' . $form['#node']->nid;
   if (isset($form_state['redirect'])) {
     // If a redirect is set, then use it to send a redirect instruction via AJAX.
     ctools_include('ajax');
@@ -149,7 +148,7 @@ function _webform_ajax_callback_completed($form, $form_state) {
       '#suffix' => '</div>',
     );
 
-    // Unset confirmation message previsously set with drupal_set_message()
+    // Unset confirmation message previously set with drupal_set_message()
     // by Webform module, as we displayed it themed.
     $status_messages = drupal_get_messages('status');
     $confirmation = check_markup($form['#node']->webform['confirmation'], $form['#node']->webform['confirmation_format'], '', TRUE);
