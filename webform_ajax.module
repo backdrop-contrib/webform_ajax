@@ -133,7 +133,7 @@ function _webform_ajax_callback_completed($form, $form_state) {
     // If a redirect is set, then use it to send a redirect instruction via AJAX.
     ctools_include('ajax');
     ctools_add_js('ajax-responder');
-    $redirect = is_array($form_state['redirect']) ? $form_state['redirect'] : array($form_state['redirect']);
+    $redirect = is_array($form_state['redirect']) ? $form_state['redirect'] : array($form_state['redirect'], array());
     $output = array(
       '#type' => 'ajax',
       '#commands' => array(
