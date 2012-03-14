@@ -16,10 +16,10 @@ define('WEBFORM_AJAX_NO_CONFIRM', -1);
 function webform_ajax_menu() {
   $items = array();
 
-  $items['webform_ajax/return_webform/%node'] = array(
+  $items['webform_ajax/return_webform/%node/%'] = array(
     'title' => 'Webform AJAX callback',
     'page callback' => 'webform_ajax_confirm_return_ajax_callback',
-    'page arguments' => array(2),
+    'page arguments' => array(2, 3),
     'delivery callback' => 'ajax_deliver',
     'access callback' => 'node_access',
     'access arguments' => array('view', 2),
@@ -90,6 +90,27 @@ function webform_ajax_webform_configure_form_submit(&$form, &$form_state) {
 function webform_ajax_form_webform_client_form_alter(&$form, $form_state, $form_id) {
   $webform = $form['#node']->webform;
   if ($webform['webform_ajax'] != WEBFORM_AJAX_NO_AJAX) {
+
+    // The wrapper ID will have to follow the webform all the time, to be unique,
+    // and allow AJAX commands to perform correctly.
+    // We have many ways to get it back depending on the situation.
+    $form['webform_ajax_wrapper_id'] = array(
+      '#type' => 'hidden',
+    );
+    if (isset($form_state['values']['webform_ajax_wrapper_id'])) {
+      $form['webform_ajax_wrapper_id']['#value'] = $form_state['values']['webform_ajax_wrapper_id'];
+    }
+    elseif (isset($form['#node']->webform['webform_ajax_wrapper_id'])) {
+      $form['webform_ajax_wrapper_id']['#value'] = $form['#node']->webform['webform_ajax_wrapper_id'];
+    }
+    else {
+      // At last, generate a unique ID.
+      $form['webform_ajax_wrapper_id']['#value'] = drupal_html_id('webform-ajax-wrapper-' . $form['#node']->nid);
+    }
+
+    $form['#prefix'] = '<div id="' . $form['webform_ajax_wrapper_id']['#value'] . '">' . (isset($form['#prefix']) ? $form['#prefix'] : '');
+    $form['#suffix'] = (isset($form['#suffix']) ? $form['#suffix'] : '') . '</div>';
+
     foreach (array('previous', 'next', 'submit') as $button) {
       if (isset($form['actions'][$button])) {
         $form['actions'][$button]['#ajax'] = array(
@@ -146,7 +167,7 @@ function _webform_ajax_callback_completed($form, $form_state) {
     $output = array(
       '#type' => 'markup',
       '#markup' => theme(array('webform_confirmation_' . $form['#node']->nid, 'webform_confirmation'), array('node' => $form['#node'], 'sid' => $form_state['values']['details']['sid'])),
-      '#prefix' => '<div id="' . $form['#id'] . '">',
+      '#prefix' => '<div id="' . $form_state['values']['webform_ajax_wrapper_id'] . '">',
       '#suffix' => '</div>',
     );
 
@@ -162,8 +183,8 @@ function _webform_ajax_callback_completed($form, $form_state) {
 
     // Add Javascript which will AJAXify "Return to form" link in webform_confirmation.
     $ajax_setting = array('webform_ajax' => array('wrappers' => array(
-      $form['#id'] => array(
-        'html_id' => $form['#id'],
+      $form_state['values']['webform_ajax_wrapper_id'] => array(
+        'html_id' => $form_state['values']['webform_ajax_wrapper_id'],
         'nid' => $form['#node']->nid,
         'sid' => $form_state['values']['details']['sid'],
       ),
@@ -175,7 +196,7 @@ function _webform_ajax_callback_completed($form, $form_state) {
   elseif ($form['#node']->webform['webform_ajax'] == WEBFORM_AJAX_NO_CONFIRM) {
     // The current process can't generate a new Webform from scratch,
     // so forward to the AJAX callback that returns a Webform form.
-    drupal_goto('webform_ajax/return_webform/' . $form['#node']->nid);
+    drupal_goto('webform_ajax/return_webform/' . $form['#node']->nid . '/' . $form_state['values']['webform_ajax_wrapper_id']);
   }
   return $output;
 }
@@ -183,12 +204,13 @@ function _webform_ajax_callback_completed($form, $form_state) {
 /**
  * "Return to form" link AJAX callback.
  */
-function webform_ajax_confirm_return_ajax_callback($node) {
+function webform_ajax_confirm_return_ajax_callback($node, $wrapper_id) {
   // Fake full page mode to force webform messages output.
   drupal_static_reset('arg');
   $real_get_q = $_GET['q'];
   $_GET['q'] = 'node/' . $node->nid;
 
+  $node->webform['webform_ajax_wrapper_id'] = $wrapper_id;
   webform_node_view($node, 'full');
 
   // Restore real $_GET['q'].
