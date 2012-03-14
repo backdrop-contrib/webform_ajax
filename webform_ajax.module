@@ -91,14 +91,16 @@ function webform_ajax_form_webform_client_form_alter(&$form, $form_state, $form_
   $webform = $form['#node']->webform;
   if ($webform['webform_ajax'] != WEBFORM_AJAX_NO_AJAX) {
     foreach (array('previous', 'next', 'submit') as $button) {
-      $form['actions'][$button]['#ajax'] = array(
-        'callback' => 'webform_ajax_callback',
-        'wrapper' => $form['#id'],
-        'progress' => array(
-          'message' => '',
-          'type' => 'throbber',
-        ),
-      );
+      if (isset($form['actions'][$button])) {
+        $form['actions'][$button]['#ajax'] = array(
+          'callback' => 'webform_ajax_callback',
+          'wrapper' => $form['#id'],
+          'progress' => array(
+            'message' => '',
+            'type' => 'throbber',
+          ),
+        );
+      }
     }
   }
 }
