@@ -173,12 +173,22 @@ function _webform_ajax_callback_completed($form, $form_state) {
 
     // Unset confirmation message previously set with drupal_set_message()
     // by Webform module, as we displayed it themed.
-    $status_messages = drupal_get_messages('status');
-    $confirmation = check_markup($form['#node']->webform['confirmation'], $form['#node']->webform['confirmation_format'], '', TRUE);
-    $index = array_search($confirmation, $status_messages['status']);
-    unset($status_messages['status'][$index]);
-    foreach ($status_messages['status'] as $message) {
-      drupal_set_message($message);
+    // Get messages without clearing queue.
+    $status_messages = drupal_get_messages('status', FALSE);
+    // If there are status messages, we may want to clear one.
+    if (isset($status_messages['status'])) {
+      // This is the message we want to erase.
+      $confirmation = check_markup($form['#node']->webform['confirmation'], $form['#node']->webform['confirmation_format'], '', TRUE);
+      $index = array_search($confirmation, $status_messages['status']);
+      // If message found, then remove it from the list, clear the messages queue,
+      // then reset all messages (except the one we removed).
+      if ($index !== FALSE) {
+        unset($status_messages['status'][$index]);
+        drupal_get_messages('status');
+        foreach ($status_messages['status'] as $message) {
+          drupal_set_message($message);
+        }
+      }
     }
 
     // Add Javascript which will AJAXify "Return to form" link in webform_confirmation.
