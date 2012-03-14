@@ -155,9 +155,13 @@ function _webform_ajax_callback_completed($form, $form_state) {
     ctools_include('ajax');
     ctools_add_js('ajax-responder');
     $redirect = is_array($form_state['redirect']) ? $form_state['redirect'] : array($form_state['redirect']);
+    // Send two AJAX commands:
+    // The first disables the form's buttons, to avoid extra click while waiting for redirect.
+    // The second is a redirect command, giving the browser the URL where to go next.
     $output = array(
       '#type' => 'ajax',
       '#commands' => array(
+        ajax_command_invoke('#' . $form_state['values']['webform_ajax_wrapper_id'] . ' input.form-submit', 'attr', array('disabled', 'disabled')),
         ctools_ajax_command_redirect($redirect[0], 0, $redirect[1]),
       ),
     );
