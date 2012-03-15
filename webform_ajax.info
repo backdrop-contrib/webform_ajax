@@ -4,4 +4,3 @@ description = Adds AJAX support to Webforms
 core = 7.x
 package = Webform
 dependencies[] = webform
-dependencies[] = ctools
