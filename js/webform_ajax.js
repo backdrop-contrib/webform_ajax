@@ -8,7 +8,7 @@ Drupal.behaviors.webform_ajax = {
       $('.links a:not(.ajax-processed)', context).addClass('ajax-processed').each(function () {
         // Fully fill element_settings, as Drupal's ajax.js seems not to merge default correctly.
         var element_settings = {
-          url: settings.webform_ajax.url + '/' + setting.nid,
+          url: settings.webform_ajax.url + '/' + setting.nid + '/' + setting.html_id,
           event: 'mousedown',
           prevent: 'click',
           keypress: false,
