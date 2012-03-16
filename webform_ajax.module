@@ -54,15 +54,10 @@ function webform_ajax_form_webform_configure_form_alter(&$form, &$form_state) {
   );
 
   $form['webform_ajax_fieldset']['webform_ajax_confirmation'] = array(
-    '#type' => 'radios',
-    '#title' => t('Show confirmation page'),
-    '#description' => t('Choose wether to retrieve in AJAX, after webform submit, the confirmation page, or the webform itself. Available only when redirection is set to "No redirect".'),
-    '#options' => array(
-      WEBFORM_AJAX_CONFIRM => t('Yes'),
-      WEBFORM_AJAX_NO_CONFIRM => t('No'),
-    ),
-    '#default_value' => $node->webform['webform_ajax'] ? $node->webform['webform_ajax'] : WEBFORM_AJAX_CONFIRM,
-    '#required' => TRUE,
+    '#type' => 'checkbox',
+    '#title' => t('Show confirmation screen'),
+    '#description' => t('Choose wether to retrieve in AJAX, after webform submit, the confirmation screen, or the webform itself. Available only when redirection is set to "No redirect".'),
+    '#default_value' => $node->webform['webform_ajax'] == WEBFORM_AJAX_NO_CONFIRM ? FALSE : TRUE,
     '#states' => array(
       'visible' => array(
         ':input[name="redirect"]' => array('value' => 'none'),
@@ -77,7 +72,12 @@ function webform_ajax_form_webform_configure_form_alter(&$form, &$form_state) {
  * Additional submit callback for form webform_configure_form.
  */
 function webform_ajax_webform_configure_form_submit(&$form, &$form_state) {
-  $webform_ajax = $form_state['values']['webform_ajax'] == WEBFORM_AJAX_NO_AJAX ? WEBFORM_AJAX_NO_AJAX : $form_state['values']['webform_ajax_confirmation'];
+  if ($form_state['values']['webform_ajax'] == WEBFORM_AJAX_NO_AJAX) {
+    $webform_ajax = WEBFORM_AJAX_NO_AJAX;
+  }
+  else {
+    $webform_ajax = $form_state['values']['webform_ajax_confirmation'] ? WEBFORM_AJAX_CONFIRM : WEBFORM_AJAX_NO_CONFIRM;
+  }
   $form['#node']->webform['webform_ajax'] = $webform_ajax;
 }
 

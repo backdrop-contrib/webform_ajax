@@ -14,7 +14,7 @@ function webform_ajax_schema_alter(&$schema) {
   if (isset($schema['webform'])) {
     // Declare new column for webform_ajax property.
     $schema['webform']['fields']['webform_ajax'] = array(
-      'description' => 'Boolean value of a webform for AJAX (1) or not (0).',
+      'description' => 'Value of a webform for AJAX with confirm screen (1), no confirm screen (-1) or no AJAX (0).',
       'type' => 'int',
       'size' => 'tiny',
       'not null' => TRUE,
