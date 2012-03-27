@@ -198,7 +198,7 @@ function _webform_ajax_callback_completed($form, $form_state) {
     // Add Javascript which will AJAXify "Return to form" link in webform_confirmation.
     $ajax_setting = array('webform_ajax' => array('wrappers' => array(
       $form_state['values']['webform_ajax_wrapper_id'] => array(
-        'html_id' => $form_state['values']['webform_ajax_wrapper_id'],
+        'wrapper_id' => $form_state['values']['webform_ajax_wrapper_id'],
         'nid' => $form['#node']->nid,
         'sid' => $form_state['values']['details']['sid'],
       ),
@@ -208,9 +208,23 @@ function _webform_ajax_callback_completed($form, $form_state) {
     drupal_add_js(drupal_get_path('module', 'webform_ajax') . '/js/webform_ajax.js', 'file');
   }
   elseif ($form['#node']->webform['webform_ajax'] == WEBFORM_AJAX_NO_CONFIRM) {
-    // The current process can't generate a new Webform from scratch,
-    // so forward to the AJAX callback that returns a Webform form.
-    drupal_goto('webform_ajax/return_webform/' . $form['#node']->nid . '/' . $form_state['values']['webform_ajax_wrapper_id']);
+    // We can't build a new form on the same request that submitted it (don't know why).
+    // So, as we need to rebuild the Webform, as AJAX response, tell the client to
+    // build another AJAX response to another URL (webform_ajax.js).
+    $ajax_setting = array('webform_ajax' => array('reload' => array(
+      'wrapper_id' => $form_state['values']['webform_ajax_wrapper_id'],
+      'nid' => $form['#node']->nid,
+      'sid' => $form_state['values']['details']['sid'],
+      'button_id' => $form['actions']['submit']['#id'],
+    )));
+    $ajax_setting['webform_ajax']['url'] = url('webform_ajax/return_webform');
+    drupal_add_js($ajax_setting, 'setting');
+    drupal_add_js(drupal_get_path('module', 'webform_ajax') . '/js/webform_ajax.js', 'file');
+
+    // This output does not alter the page, and ensures Drupal messages are kept for the next request.
+    $output = array(
+      '#type' => 'ajax',
+    );
   }
   return $output;
 }
