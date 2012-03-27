@@ -111,7 +111,7 @@ function webform_ajax_form_webform_client_form_alter(&$form, $form_state, $form_
     $form['#prefix'] = '<div id="' . $form['webform_ajax_wrapper_id']['#value'] . '">' . (isset($form['#prefix']) ? $form['#prefix'] : '');
     $form['#suffix'] = (isset($form['#suffix']) ? $form['#suffix'] : '') . '</div>';
 
-    foreach (array('previous', 'next', 'submit') as $button) {
+    foreach (array('previous', 'next', 'submit', 'draft') as $button) {
       if (isset($form['actions'][$button])) {
         $form['actions'][$button]['#ajax'] = array(
           'callback' => 'webform_ajax_callback',
@@ -134,7 +134,7 @@ function webform_ajax_form_webform_client_form_alter(&$form, $form_state, $form_
 function webform_ajax_callback($form, &$form_state) {
   $output = array();
   // If user completed his submission, determine what to do.
-  if (isset($form_state['webform_completed']) && $form_state['webform_completed']) {
+  if (isset($form_state['webform_completed']) && $form_state['webform_completed'] && !$form_state['save_draft']) {
     $output = _webform_ajax_callback_completed($form, $form_state);
   }
   else {
