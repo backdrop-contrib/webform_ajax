@@ -56,7 +56,7 @@ function webform_ajax_form_webform_configure_form_alter(&$form, &$form_state) {
   $form['webform_ajax_fieldset']['webform_ajax_confirmation'] = array(
     '#type' => 'checkbox',
     '#title' => t('Show confirmation screen'),
-    '#description' => t('Choose wether to retrieve in AJAX, after webform submit, the confirmation screen, or the webform itself. Available only when redirection is set to "No redirect".'),
+    '#description' => t('Choose whether to retrieve in AJAX, after webform submit, the confirmation screen, or the webform itself. Available only when redirection is set to "No redirect".'),
     '#default_value' => $node->webform['webform_ajax'] == WEBFORM_AJAX_NO_CONFIRM ? FALSE : TRUE,
     '#states' => array(
       'visible' => array(
