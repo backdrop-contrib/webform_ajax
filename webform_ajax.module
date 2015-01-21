@@ -235,6 +235,7 @@ function _webform_ajax_callback_completed($form, $form_state) {
     // This output does not alter the page, and ensures Drupal messages are kept for the next request.
     $output = array(
       '#type' => 'ajax',
+      '#commands' => array(),
     );
   }
   return $output;
