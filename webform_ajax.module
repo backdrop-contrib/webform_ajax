@@ -192,8 +192,11 @@ function _webform_ajax_callback_completed($form, $form_state) {
     $status_messages = drupal_get_messages('status', FALSE);
     // If there are status messages, we may want to clear one.
     if (isset($status_messages['status'])) {
+      // Load node and submission to pass to webform_replace_tokens()
+      $node = node_load($form_state['values']['details']['nid']);
+      $submission = webform_get_submission($form_state['values']['details']['nid'], $form_state['values']['details']['sid']);
       // This is the message we want to erase.
-      $confirmation = check_markup($form['#node']->webform['confirmation'], $form['#node']->webform['confirmation_format'], '', TRUE);
+      $confirmation = webform_replace_tokens($form['#node']->webform['confirmation'], $node, $submission, NULL, $form['#node']->webform['confirmation_format']);
       $index = array_search($confirmation, $status_messages['status']);
       // If message found, then remove it from the list, clear the messages queue,
       // then reset all messages (except the one we removed).
