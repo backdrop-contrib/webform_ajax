@@ -124,13 +124,6 @@ function webform_ajax_form_webform_client_form_alter(&$form, $form_state, $form_
         if (in_array($button, array('next', 'submit'))) {
           $form['actions'][$button]['#ajax']['event'] = 'click';
         }
-        // Workaround for Drupal core bug http://drupal.org/node/1548976.
-        // As long as buttons HTML id are causing problems, and it has bad
-        // consequences on pages where Webform AJAX is active, we'll force
-        // custom ids on AJAXed Webform's buttons.
-        $submit_id = drupal_html_id('edit-webform-ajax-' . $button . '-' .$form['#node']->nid);
-        $form['actions'][$button]['#attributes']['id'] = $submit_id;
-        $form['actions'][$button]['#id'] = $submit_id;
       }
     }
   }
