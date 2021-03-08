@@ -87,9 +87,9 @@ function webform_ajax_webform_configure_form_submit(&$form, &$form_state) {
  * With FORM_ID = webform_client_form.
  * Add AJAX logic to Webform form.
  */
-function webform_ajax_form_webform_client_form_alter(&$form, $form_state, $form_id) {
-  $webform = $form['#node']->webform;
-  if ($webform['webform_ajax'] != WEBFORM_AJAX_NO_AJAX) {
+function webform_ajax_form_webform_client_form_alter(&$form, &$form_state, $form_id) {
+  $node = $form['#node'];
+  if ($node->webform['webform_ajax'] != WEBFORM_AJAX_NO_AJAX) {
 
     // The wrapper ID will have to follow the webform all the time, to be unique,
     // and allow AJAX commands to perform correctly.
@@ -100,12 +100,12 @@ function webform_ajax_form_webform_client_form_alter(&$form, $form_state, $form_
     if (isset($form_state['values']['webform_ajax_wrapper_id'])) {
       $form['webform_ajax_wrapper_id']['#value'] = $form_state['values']['webform_ajax_wrapper_id'];
     }
-    elseif (isset($form['#node']->webform['webform_ajax_wrapper_id'])) {
-      $form['webform_ajax_wrapper_id']['#value'] = $form['#node']->webform['webform_ajax_wrapper_id'];
+    elseif (isset($node->webform['webform_ajax_wrapper_id'])) {
+      $form['webform_ajax_wrapper_id']['#value'] = $node->webform['webform_ajax_wrapper_id'];
     }
     else {
       // At last, generate a unique ID.
-      $form['webform_ajax_wrapper_id']['#value'] = drupal_html_id('webform-ajax-wrapper-' . $form['#node']->nid);
+      $form['webform_ajax_wrapper_id']['#value'] = drupal_html_id('webform-ajax-wrapper-' . $node->nid);
     }
 
     $form['#prefix'] = '<div id="' . $form['webform_ajax_wrapper_id']['#value'] . '">' . (isset($form['#prefix']) ? $form['#prefix'] : '');
@@ -127,10 +127,17 @@ function webform_ajax_form_webform_client_form_alter(&$form, $form_state, $form_
       }
     }
   }
-  // Suppress webform’s confirmation message. We want to control its rendering.
+  // We want to control the rendering of the confirmation message.
   // @see https://www.drupal.org/project/webform_ajax/issues/2516730
-  $form['#webform_confirmation'] = $webform['confirmation'];
-  $form['#node']->webform['confirmation'] = FALSE;
+  // Record the message for later use in _webform_ajax_callback_completed().
+  // Only do this once when rendering the first webform step and before it is
+  // removed from the node.
+  if (!isset($form_state['webform_ajax_confirmation'])) {
+    $form_state['webform_ajax_confirmation'] = $node->webform['confirmation'];
+  }
+  // Remove the message from the node to prevent webform from rendering it.
+  // This needs to happen in every request.
+  $node->webform['confirmation'] = FALSE;
 }
 
 /**
@@ -182,7 +189,7 @@ function _webform_ajax_callback_completed($form, $form_state) {
   elseif ($form['#node']->webform['webform_ajax'] == WEBFORM_AJAX_CONFIRM) {
     // Reinstate the confirmation message that was removed in
     // webform_client_form_alter().
-    $form["#node"]->webform["confirmation"] = $form['#webform_confirmation'];
+    $form["#node"]->webform["confirmation"] = $form_state['webform_ajax_confirmation'];
 
     // Display webform confirmation.
     $output = array(
