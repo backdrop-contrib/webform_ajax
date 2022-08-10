@@ -3,5 +3,4 @@ description = Adds AJAX support to Webforms
 backdrop = 1.x
 type = module
 package = Webform
-dependencies[] = webform:webform (>=4.4)
-dependencies[] = ctools:ctools
+dependencies[] = webform:webform
