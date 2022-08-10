@@ -1,6 +1,7 @@
 name = Webform AJAX
 description = Adds AJAX support to Webforms
-core = 7.x
+backdrop = 1.x
+type = module
 package = Webform
 dependencies[] = webform:webform (>=4.4)
 dependencies[] = ctools:ctools

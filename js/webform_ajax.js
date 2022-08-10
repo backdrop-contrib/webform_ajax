@@ -1,10 +1,10 @@
 (function ($) {
 
-Drupal.behaviors.webform_ajax = {
+Backdrop.behaviors.webform_ajax = {
 
   attach: function (context, settings) {
 
-    // Fully declare element_settings, as Drupal's ajax.js seems not to merge defaults correctly.
+    // Fully declare element_settings, as Backdrop's ajax.js seems not to merge defaults correctly.
     var ajax_element_settings_defaults = {
       url: settings.webform_ajax.url + '/',
       event: 'mousedown',
@@ -36,7 +36,7 @@ Drupal.behaviors.webform_ajax = {
         element_settings.selector += setting.wrapper_id;
         element_settings.wrapper += setting.wrapper_id;
 
-        Drupal.ajax[setting.wrapper_id] = new Drupal.ajax(setting.wrapper_id, this, element_settings);
+        Backdrop.ajax[setting.wrapper_id] = new Backdrop.ajax(setting.wrapper_id, this, element_settings);
       }
     });
 
@@ -49,8 +49,8 @@ Drupal.behaviors.webform_ajax = {
 
       button = $('#' + setting.button_id, context);
 
-      Drupal.ajax[setting.wrapper_id] = new Drupal.ajax(setting.wrapper_id, button, element_settings);
-      Drupal.ajax[setting.wrapper_id].eventResponse(button, null);
+      Backdrop.ajax[setting.wrapper_id] = new Backdrop.ajax(setting.wrapper_id, button, element_settings);
+      Backdrop.ajax[setting.wrapper_id].eventResponse(button, null);
 
       // Remove the reload setting to avoid looping.
       delete settings.webform_ajax.reload;
