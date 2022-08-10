@@ -173,6 +173,7 @@ function _webform_ajax_callback_completed($form, $form_state) {
   if (isset($form_state['redirect'])) {
     // If a redirect is set, then use it to send a redirect instruction via AJAX.
     $redirect = is_array($form_state['redirect']) ? $form_state['redirect'] : array($form_state['redirect'], array());
+    $redirect_url = url($redirect[0], $redirect[1]);
     // Send two AJAX commands:
     // The first disables the form's buttons, to avoid extra click while waiting for redirect.
     // The second is a redirect command, giving the browser the URL where to go next.
@@ -180,7 +181,7 @@ function _webform_ajax_callback_completed($form, $form_state) {
       '#type' => 'ajax',
       '#commands' => array(
         ajax_command_invoke('#' . $form_state['values']['webform_ajax_wrapper_id'] . ' input.form-submit', 'attr', array('disabled', 'disabled')),
-        ajax_command_redirect($redirect[0]),
+        ajax_command_redirect($redirect_url),
       ),
     );
   }
